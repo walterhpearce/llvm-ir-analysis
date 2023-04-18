@@ -1,6 +1,6 @@
 use crate::functions_by_type::FunctionsByType;
 use either::Either;
-use llvm_ir::{Constant, Instruction, Module, Name, Operand, Type};
+use llvm_ir::{Constant, Instruction, Module, Name, Operand, Terminator, Type};
 use petgraph::prelude::*;
 
 /// The call graph for the analyzed `Module`(s): which functions may call which
@@ -26,17 +26,72 @@ impl<'m> CallGraph<'m> {
             for f in &module.functions {
                 graph.add_node(&f.name); // just to ensure all functions end up getting nodes in the graph by the end
                 for bb in &f.basic_blocks {
+                    if let Terminator::Invoke(call) = &bb.term {
+                        match &call.function {
+                            Either::Right(Operand::ConstantOperand(cref)) => {
+                                match cref.as_ref() {
+                                    Constant::GlobalReference {
+                                        name: Name::Name(name),
+                                        ..
+                                    } => {
+                                        graph.add_edge(&f.name, name, ());
+                                    }
+                                    Constant::GlobalReference { name, .. } => {
+                                        unimplemented!(
+                                            "Call of a function with a numbered name: {:?}",
+                                            name
+                                        )
+                                    }
+                                    _ => {
+                                        // a constant function pointer.
+                                        // Assume that this function pointer could point
+                                        // to any function in the current module that has
+                                        // the appropriate type
+                                        let func_ty = match module.type_of(&call.function).as_ref() {
+                                            Type::PointerType { pointee_type, .. } => pointee_type.clone(),
+                                            ty => panic!("Expected function pointer to have pointer type, but got {:?}", ty),
+                                        };
+                                        for target in
+                                            functions_by_type.functions_with_type(&func_ty)
+                                        {
+                                            graph.add_edge(&f.name, target, ());
+                                        }
+                                    }
+                                }
+                            }
+                            Either::Right(_) => {
+                                // Assume that this function pointer could point to any
+                                // function in the current module that has the
+                                // appropriate type
+                                let func_ty = match module.type_of(&call.function).as_ref() {
+                                    Type::PointerType { pointee_type, .. } => pointee_type.clone(),
+                                    ty => panic!("Expected function pointer to have pointer type, but got {:?}", ty),
+                                };
+                                for target in functions_by_type.functions_with_type(&func_ty) {
+                                    graph.add_edge(&f.name, target, ());
+                                }
+                            }
+                            Either::Left(_) => {} // ignore calls to inline assembly
+                        }
+                    }
+
                     for inst in &bb.instrs {
                         if let Instruction::Call(call) = inst {
                             match &call.function {
                                 Either::Right(Operand::ConstantOperand(cref)) => {
                                     match cref.as_ref() {
-                                        Constant::GlobalReference { name: Name::Name(name), .. } => {
+                                        Constant::GlobalReference {
+                                            name: Name::Name(name),
+                                            ..
+                                        } => {
                                             graph.add_edge(&f.name, name, ());
-                                        },
+                                        }
                                         Constant::GlobalReference { name, .. } => {
-                                            unimplemented!("Call of a function with a numbered name: {:?}", name)
-                                        },
+                                            unimplemented!(
+                                                "Call of a function with a numbered name: {:?}",
+                                                name
+                                            )
+                                        }
                                         _ => {
                                             // a constant function pointer.
                                             // Assume that this function pointer could point
@@ -46,12 +101,14 @@ impl<'m> CallGraph<'m> {
                                                 Type::PointerType { pointee_type, .. } => pointee_type.clone(),
                                                 ty => panic!("Expected function pointer to have pointer type, but got {:?}", ty),
                                             };
-                                            for target in functions_by_type.functions_with_type(&func_ty) {
+                                            for target in
+                                                functions_by_type.functions_with_type(&func_ty)
+                                            {
                                                 graph.add_edge(&f.name, target, ());
                                             }
-                                        },
+                                        }
                                     }
-                                },
+                                }
                                 Either::Right(_) => {
                                     // Assume that this function pointer could point to any
                                     // function in the current module that has the
@@ -63,8 +120,8 @@ impl<'m> CallGraph<'m> {
                                     for target in functions_by_type.functions_with_type(&func_ty) {
                                         graph.add_edge(&f.name, target, ());
                                     }
-                                },
-                                Either::Left(_) => {}, // ignore calls to inline assembly
+                                }
+                                Either::Left(_) => {} // ignore calls to inline assembly
                             }
                         }
                     }
@@ -72,9 +129,7 @@ impl<'m> CallGraph<'m> {
             }
         }
 
-        Self {
-            graph,
-        }
+        Self { graph }
     }
 
     /// Get the names of functions in the analyzed `Module`(s) which may call the
@@ -86,9 +141,13 @@ impl<'m> CallGraph<'m> {
     /// Panics if the given function is not found in the analyzed `Module`(s).
     pub fn callers<'s>(&'s self, func_name: &'m str) -> impl Iterator<Item = &'m str> + 's {
         if !self.graph.contains_node(func_name) {
-            panic!("callers(): function named {:?} not found in the Module(s)", func_name)
+            panic!(
+                "callers(): function named {:?} not found in the Module(s)",
+                func_name
+            )
         }
-        self.graph.neighbors_directed(func_name, Direction::Incoming)
+        self.graph
+            .neighbors_directed(func_name, Direction::Incoming)
     }
 
     /// Get the names of functions in the analyzed `Module`(s) which may be
@@ -100,8 +159,12 @@ impl<'m> CallGraph<'m> {
     /// Panics if the given function is not found in the analyzed `Module`(s).
     pub fn callees<'s>(&'s self, func_name: &'m str) -> impl Iterator<Item = &'m str> + 's {
         if !self.graph.contains_node(func_name) {
-            panic!("callees(): function named {:?} not found in the Module(s)", func_name)
+            panic!(
+                "callees(): function named {:?} not found in the Module(s)",
+                func_name
+            )
         }
-        self.graph.neighbors_directed(func_name, Direction::Outgoing)
+        self.graph
+            .neighbors_directed(func_name, Direction::Outgoing)
     }
 }
