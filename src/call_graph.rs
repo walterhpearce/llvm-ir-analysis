@@ -30,10 +30,7 @@ impl<'m> CallGraph<'m> {
                         match &call.function {
                             Either::Right(Operand::ConstantOperand(cref)) => {
                                 match cref.as_ref() {
-                                    Constant::GlobalReference {
-                                        name: Name::Name(name),
-                                        ..
-                                    } => {
+                                    Constant::GlobalReference { name, .. } => {
                                         graph.add_edge(&f.name, name, ());
                                     }
                                     Constant::GlobalReference { name, .. } => {
@@ -80,10 +77,7 @@ impl<'m> CallGraph<'m> {
                             match &call.function {
                                 Either::Right(Operand::ConstantOperand(cref)) => {
                                     match cref.as_ref() {
-                                        Constant::GlobalReference {
-                                            name: Name::Name(name),
-                                            ..
-                                        } => {
+                                        Constant::GlobalReference { name, .. } => {
                                             graph.add_edge(&f.name, name, ());
                                         }
                                         Constant::GlobalReference { name, .. } => {
@@ -166,5 +160,9 @@ impl<'m> CallGraph<'m> {
         }
         self.graph
             .neighbors_directed(func_name, Direction::Outgoing)
+    }
+
+    pub fn inner(&self) -> &DiGraphMap<&'m str, ()> {
+        &self.graph
     }
 }
