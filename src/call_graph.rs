@@ -1,6 +1,6 @@
 use crate::functions_by_type::FunctionsByType;
 use either::Either;
-use llvm_ir::{Constant, Instruction, Module, Name, Operand, Terminator, Type};
+use llvm_ir::{Constant, Instruction, Module, Operand, Terminator, Type};
 use petgraph::prelude::*;
 
 /// The call graph for the analyzed `Module`(s): which functions may call which
@@ -32,12 +32,6 @@ impl<'m> CallGraph<'m> {
                                 match cref.as_ref() {
                                     Constant::GlobalReference { name, .. } => {
                                         graph.add_edge(&f.name, name, ());
-                                    }
-                                    Constant::GlobalReference { name, .. } => {
-                                        unimplemented!(
-                                            "Call of a function with a numbered name: {:?}",
-                                            name
-                                        )
                                     }
                                     _ => {
                                         // a constant function pointer.
@@ -79,12 +73,6 @@ impl<'m> CallGraph<'m> {
                                     match cref.as_ref() {
                                         Constant::GlobalReference { name, .. } => {
                                             graph.add_edge(&f.name, name, ());
-                                        }
-                                        Constant::GlobalReference { name, .. } => {
-                                            unimplemented!(
-                                                "Call of a function with a numbered name: {:?}",
-                                                name
-                                            )
                                         }
                                         _ => {
                                             // a constant function pointer.
