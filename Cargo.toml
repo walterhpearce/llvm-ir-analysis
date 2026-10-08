@@ -14,7 +14,7 @@ license = "MIT"
 
 [dependencies]
 either = "1.10"
-llvm-ir = "0.11.0"
+llvm-ir = { path = "../llvm-ir" }
 log = "0.4"
 petgraph = { version = "0.6.0", default-features = false, features = ["graphmap"] }
 
@@ -34,9 +34,11 @@ llvm-14 = ["llvm-ir/llvm-14", "llvm-14-or-lower", "llvm-14-or-greater"]
 llvm-15 = ["llvm-ir/llvm-15", "llvm-15-or-lower", "llvm-15-or-greater"]
 llvm-16 = ["llvm-ir/llvm-16", "llvm-16-or-lower", "llvm-16-or-greater"]
 llvm-17 = ["llvm-ir/llvm-17", "llvm-17-or-lower", "llvm-17-or-greater"]
-llvm-18 = ["llvm-ir/llvm-17", "llvm-18-or-lower", "llvm-18-or-greater"]
-llvm-19 = ["llvm-ir/llvm-17", "llvm-19-or-lower", "llvm-19-or-greater"]
-llvm-20 = ["llvm-ir/llvm-17", "llvm-20-or-lower", "llvm-20-or-greater"]
+llvm-18 = ["llvm-ir/llvm-18", "llvm-18-or-lower", "llvm-18-or-greater"]
+llvm-19 = ["llvm-ir/llvm-19", "llvm-19-or-lower", "llvm-19-or-greater"]
+llvm-20 = ["llvm-ir/llvm-20", "llvm-20-or-lower", "llvm-20-or-greater"]
+llvm-21 = ["llvm-ir/llvm-21", "llvm-21-or-lower", "llvm-21-or-greater"]
+llvm-22 = ["llvm-ir/llvm-22", "llvm-22-or-lower", "llvm-22-or-greater"]
 
 # The `strict-versioning` feature requires an exact match between the system
 # LLVM version and the version selected with the above features.
@@ -60,6 +62,8 @@ llvm-17-or-greater = ["llvm-16-or-greater"]
 llvm-18-or-greater = ["llvm-17-or-greater"]
 llvm-19-or-greater = ["llvm-18-or-greater"]
 llvm-20-or-greater = ["llvm-19-or-greater"]
+llvm-21-or-greater = ["llvm-20-or-greater"]
+llvm-22-or-greater = ["llvm-21-or-greater"]
 
 llvm-9-or-lower = ["llvm-10-or-lower"]
 llvm-10-or-lower = ["llvm-11-or-lower"]
@@ -72,7 +76,9 @@ llvm-16-or-lower = ["llvm-17-or-lower"]
 llvm-17-or-lower = ["llvm-18-or-lower"]
 llvm-18-or-lower = ["llvm-19-or-lower"]
 llvm-19-or-lower = ["llvm-20-or-lower"]
-llvm-20-or-lower = []
+llvm-20-or-lower = ["llvm-21-or-lower"]
+llvm-21-or-lower = ["llvm-22-or-lower"]
+llvm-22-or-lower = []
 
 ###
 
